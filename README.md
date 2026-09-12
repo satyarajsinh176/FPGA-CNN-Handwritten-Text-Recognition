@@ -57,3 +57,31 @@ Fully Connected
      │
      ▼
 Prediction
+
+RTL Modules
+Module	                  Description
+cnn_top.v	           Top-level CNN accelerator
+conv_engine_q88.v	 Fixed-point convolution engine
+dense_mac_q88.v	 MAC-based dense-layer computation
+mac_q88.v            Fixed-point multiply-accumulate unit
+relu_q88.v	      ReLU activation
+maxpool_q88.v	      2×2 max-pooling
+bram_weight_ctrl.v	 Weight memory/control logic
+
+Project Status
+
+Currently: RTL simulation and functional verification
+
+FPGA synthesis, implementation, and hardware validation are ongoing.
+
+Tools & Technologies:
+Verilog
+Xilinx Vivado
+PYNQ
+Python
+TensorFlow
+Xilinx Zynq-7020 FPGA
+
+Author
+
+Satyarajsinh Gohil
