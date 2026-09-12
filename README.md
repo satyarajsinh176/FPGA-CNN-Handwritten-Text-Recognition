@@ -1,5 +1,3 @@
-# FPGA-CNN-Handwritten-Text-Recognition
-Quantized CNN accelerator implemented in Verilog for FPGA-based handwritten text recognition.
 # FPGA-Based CNN Accelerator for Handwritten Text Recognition
 
 A hardware-accelerated Convolutional Neural Network (CNN) implemented in Verilog for FPGA-based handwritten text recognition.
