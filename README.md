@@ -1,266 +1,237 @@
-<div align="center">
-
 # FPGA-Based Handwritten Character Recognition Accelerator
 
-### Hardware Implementation of a 62-Class Convolutional Neural Network on the PYNQ-Z2 FPGA
+**62-class CNN inference engine implemented in Verilog on the PYNQ-Z2 (Xilinx Zynq-7020)**
 
-</div>
-
-## Overview
-
-This project implements an **FPGA-based handwritten character recognition accelerator** on the **PYNQ-Z2** using a custom **Verilog CNN inference architecture**.
-
-The system uses the **EMNIST ByClass** dataset containing **62 character classes (0–9, A–Z, a–z)**. The CNN is trained offline using **TensorFlow/Keras**, converted into an FPGA-compatible inference model, quantized to **signed Q8.8 fixed-point format**, and implemented using custom **Verilog HDL** on the Xilinx **Zynq-7020** FPGA.
-
-The complete development flow covers neural network training, model export, fixed-point quantization, RTL implementation, Vivado synthesis and implementation, simulation-based verification, and physical PYNQ-Z2 hardware validation.
+![Board](https://img.shields.io/badge/Board-PYNQ--Z2-blue)
+![Device](https://img.shields.io/badge/Device-XC7Z020CLG400--1-blue)
+![HDL](https://img.shields.io/badge/HDL-Verilog-orange)
+![Tool](https://img.shields.io/badge/Vivado-2025.1-red)
+![Clock](https://img.shields.io/badge/Clock-50%20MHz-green)
+![Timing](https://img.shields.io/badge/Timing-MET-brightgreen)
 
 ---
 
-## System Workflow
+## Overview
 
-```text
-EMNIST ByClass
-      |
-      v
-CNN Training
-      |
-      v
-Model Export
-      |
-      v
-Q8.8 Quantization
-      |
-      v
-Verilog RTL
-      |
-      v
-Vivado Synthesis & Implementation
-      |
-      v
-PYNQ-Z2 Deployment
-      |
-      v
-FPGA Hardware Inference
+A complete software-to-hardware CNN accelerator for handwritten character recognition on the **EMNIST ByClass** dataset (62 classes: `0–9`, `A–Z`, `a–z`).
 
-The accelerator receives image pixels through the Zynq processing system using AXI GPIO, performs the complete CNN inference in hardware, and returns the predicted class together with hardware status and input checksum information.
+The network is trained offline in TensorFlow/Keras, quantized to **signed Q8.8 fixed-point**, and implemented as custom **Verilog RTL** on the Zynq-7020 PL. The Zynq PS streams image pixels to the accelerator over **AXI GPIO** and reads back the predicted class, status flags, and an input checksum.
 
-CNN Architecture
+No floating-point hardware, no HLS — the entire datapath is hand-written RTL.
 
-The implemented CNN accepts a 32 × 32 grayscale image and consists of three convolutional stages followed by a fully connected classifier.
+---
 
-32 × 32 × 1 Input
-       |
-       v
-Conv1: 3 × 3, 16 Filters
-       |
-     ReLU
-       |
-MaxPool: 2 × 2
-       |
-       v
-Conv2: 3 × 3, 32 Filters
-       |
-     ReLU
-       |
-MaxPool: 2 × 2
-       |
-       v
-Conv3: 3 × 3, 64 Filters
-       |
-     ReLU
-       |
-       v
-Flatten: 1024
-       |
-       v
-Dense1: 128 + ReLU
-       |
-       v
-Output: 62 Classes
-       |
-       v
-Argmax
+## Workflow
 
-Layer Configuration
-Layer	Configuration	     Output
-Input	Grayscale	         32 × 32 × 1
-Conv1	3 × 3, 16 filters	   30 × 30 × 16
-Pool1	2 × 2, stride 2	   15 × 15 × 16
-Conv2	3 × 3, 32 filters	   13 × 13 × 32
-Pool2	2 × 2, stride 2	   6 × 6 × 32
-Conv3	3 × 3, 64 filters	   4 × 4 × 64
-Flatten		         1024
-Dense1	               128 neurons + ReLU	128
-Output	 62 classes	   62
+```
+EMNIST ByClass  →  CNN Training (TF/Keras)  →  Model Export
+      →  Q8.8 Quantization  →  Verilog RTL
+      →  Vivado Synthesis & Implementation
+      →  PYNQ-Z2 Deployment  →  Hardware Inference
+```
 
-Classes: 0–9, A–Z, a–z
-</div>
-FPGA Architecture
+---
 
-The accelerator is implemented using custom Verilog RTL and integrated with the Zynq processing system through AXI GPIO.
+## CNN Architecture
 
-                
-                     Zynq Processing System  
-                         PYNQ / Python      
-                               +
-                               |
-                               | AXI GPIO
-                               v
-                 +---------------------------+
-                 |     CNN Accelerator       |
-                 |        Verilog RTL        |
-                 |                           |
-                 | Conv1 → Pool1             |
-                 | Conv2 → Pool2             |
-                 | Conv3 → Dense1            |
-                 | Output → Argmax           |
-                 +-------------+-------------+
-                               |
-                    +----------+----------+
-                    |                     |
-                    v                     v
-             +-------------+       +-------------+
-             |    BRAM     |       |   Output    |
-             |             |       |             |
-             | Weights     |       | Class       |
-             | Biases      |       | Status      |
-             | Activations |       | Checksum    |
-             +-------------+       +-------------+
+Input: **32 × 32 grayscale**
 
-Hardware Platform
-Parameter	         Specification
-FPGA Board	           PYNQ-Z2
-FPGA Family	           Xilinx Zynq-7000
-FPGA Device            XC7Z020CLG400-1
-Clock Frequency	     50 MHz
-HDL	                 Verilog HDL
-Arithmetic	           Signed Q8.8 / INT16
-Memory	           Block RAM (BRAM)
-Host Interface	     AXI GPIO
-FPGA Toolchain	     AMD/Xilinx Vivado 2025.1
+| Layer   | Configuration       | Output       |
+|---------|---------------------|--------------|
+| Input   | Grayscale           | 32 × 32 × 1  |
+| Conv1   | 3 × 3, 16 filters   | 30 × 30 × 16 |
+| Pool1   | 2 × 2, stride 2     | 15 × 15 × 16 |
+| Conv2   | 3 × 3, 32 filters   | 13 × 13 × 32 |
+| Pool2   | 2 × 2, stride 2     | 6 × 6 × 32   |
+| Conv3   | 3 × 3, 64 filters   | 4 × 4 × 64   |
+| Flatten | —                   | 1024         |
+| Dense1  | 128 neurons + ReLU  | 128          |
+| Output  | 62 classes          | 62           |
 
-Fixed-Point Implementation
+Classification is completed on-chip with an argmax over the 62 output scores.
 
-The FPGA datapath uses signed 16-bit Q8.8 fixed-point arithmetic.
+---
 
-16-bit Q8.8
+## Hardware Data Path
 
- Integer: 8 bit | Fraction: 8 bit|
+```
+        Zynq Processing System (PYNQ / Python)
+                      |
+                   AXI GPIO
+                      v
+        +------------------------------+
+        |     CNN Accelerator (RTL)    |
+        |  Conv1 → Pool1 → Conv2       |
+        |  → Pool2 → Conv3 → Dense1    |
+        |  → Output → Argmax           |
+        +------------------------------+
+             |                    |
+             v                    v
+        BRAM (weights,     Output (class,
+        biases, acts)      status, checksum)
+```
 
-The multiplication datapath performs fixed-point scaling after multiplication:
+---
 
-Q8.8 × Q8.8
-      |
-      v
-Wider Product
-      |
-      v
-Arithmetic Right Shift by 8
-      |
-      v
-Q8.8 Result
+## Fixed-Point Datapath
 
-This enables the CNN to perform inference without floating-point hardware while maintaining the required numerical representation.
+All arithmetic uses **signed 16-bit Q8.8** (8 integer bits, 8 fractional bits).
 
-Memory Optimization
+```
+Q8.8 × Q8.8 → wider product → arithmetic right shift by 8 → Q8.8
+```
 
-Memory architecture was one of the major implementation challenges.
+This keeps the full CNN inference free of floating-point resources while preserving adequate numerical range for the quantized weights and activations.
 
-The initial activation-memory implementation used asynchronous array reads, which caused Vivado to infer large distributed LUT-based memories instead of dedicated BRAM.
+---
 
-This resulted in excessive LUT utilization and prevented successful implementation.
+## Memory Architecture Optimization
 
-The final architecture was redesigned using:
+**Problem.** The first activation-memory implementation used asynchronous array reads. Vivado inferred large distributed LUT-based memories instead of dedicated BRAM, causing excessive LUT utilization and blocking implementation.
 
-Resource	Utilization
-LUT	7.38%
-BRAM	78.21%
-RTL Verification
+**Fix.** The activation memory was redesigned around synchronous, BRAM-compatible reads so the large activation buffers map to dedicated block RAM.
 
-The RTL implementation was verified against golden-reference data generated from the software model.
+**Result.** LUT utilization dropped to **7.38%**, with **78.21%** BRAM — the change that made the full accelerator fit on the Zynq-7020.
 
-Layer-Wise Verification
-CNN Stage	Values Checked	Mismatches
-Conv1	        14,400	           0
-Pool1 	  3,600	           0
-Conv2	        5,408	           0
-Pool2	        1,152          	     0
-Conv3	        1,024                0
-Dense1	   128	           0
-Output	    62	           0
-Verification Result
+---
 
-7/7 checkpoints passed with 0 mismatches.
+## Verification
 
-Final golden-reference result:
+RTL output was compared layer-by-layer against golden-reference data generated from the software model.
 
+| CNN Stage | Values Checked | Mismatches |
+|-----------|----------------|------------|
+| Conv1     | 14,400         | 0          |
+| Pool1     | 3,600          | 0          |
+| Conv2     | 5,408          | 0          |
+| Pool2     | 1,152          | 0          |
+| Conv3     | 1,024          | 0          |
+| Dense1    | 128            | 0          |
+| Output    | 62             | 0          |
+
+**7/7 checkpoints passed — 0 mismatches.**
+
+Golden reference:
+
+```
 Predicted Class : 8
 Output[8]       : -26662
 Input Checksum  : 0xCEA
 Result Valid    : 1
-Software Model Results
+```
 
-The floating-point TensorFlow/Keras model was evaluated on the complete EMNIST ByClass test set.
+---
 
-Metric	        Result
-Dataset	    EMNIST ByClass
-Test Samples	116,323
-Test Accuracy	82.7893%
+## Results
 
-The 82.7893% accuracy represents the measured performance of the floating-point software model on the complete EMNIST ByClass test set.
+### Software Model
 
-A full-dataset FPGA accuracy measurement was not performed.
+| Metric        | Result           |
+|---------------|------------------|
+| Dataset       | EMNIST ByClass   |
+| Test Samples  | 116,323          |
+| Test Accuracy | 82.7893%         |
 
-FPGA Implementation Results
-Resource Utilization
-FPGA Resource	Utilization
-LUT	             7.38%
-Flip-Flop	       2.33%
-BRAM	             78.21%
-DSP	             3.64%
+> This is the floating-point software model's accuracy on the full test set. A full-dataset accuracy sweep on the FPGA was not performed.
 
-Timing Analysis
-Timing Metric	  Result
-Target Frequency	  50 MHz
-Clock Period	  20 ns
-WNS	              +1.545 ns
-TNS	              0 ns
-WHS	              +0.064 ns
-THS	              0 ns
-Pulse Width Slack   +8.750 ns
+### FPGA Resource Utilization
 
-All timing constraints were successfully met at the final 50 MHz operating point.
+| Resource  | Utilization |
+|-----------|-------------|
+| LUT       | 7.38%       |
+| Flip-Flop | 2.33%       |
+| BRAM      | 78.21%      |
+| DSP       | 3.64%       |
 
-PYNQ-Z2 Hardware Validation
+### Timing (50 MHz / 20 ns)
 
-The final bitstream was deployed on the physical PYNQ-Z2 platform.
+| Metric              | Result     |
+|---------------------|------------|
+| WNS                 | +1.545 ns  |
+| TNS                 | 0 ns       |
+| WHS                 | +0.064 ns  |
+| THS                 | 0 ns       |
+| Pulse Width Slack   | +8.750 ns  |
+| **Status**          | **MET**    |
 
-Hardware testing produced:
+---
 
-RESULT VALID = 1
-CLASS        = 8
-DEBUG STATUS = 10
-CHECKSUM     = 0xCEA
-DIAGNOSTIC   = 0x20ACEA
+## Hardware Validation
 
-The result remained stable across repeated hardware reads, confirming correct operation of the complete host-to-FPGA inference path.
+Final bitstream deployed and read back on the physical PYNQ-Z2:
 
-Tools and Technologies
-Category	                 Technologies
-Machine Learning	      Python, TensorFlow, Keras
-Dataset	            EMNIST ByClass
-Hardware Description	Verilog HDL
-FPGA	                  Xilinx Zynq-7000
-Development Board	      PYNQ-Z2
-FPGA Toolchain	      AMD/Xilinx Vivado 2025.1
-Arithmetic	            Q8.8 Fixed-Point / INT16
-Memory	            BRAM
-Interface	            AXI GPIO
-Verification	      Verilog Testbench, Golden Reference
+| Parameter     | Result     |
+|---------------|------------|
+| RESULT VALID  | 1          |
+| CLASS         | 8          |
+| DEBUG STATUS  | 10         |
+| CHECKSUM      | 0xCEA      |
+| DIAGNOSTIC    | 0x20ACEA   |
 
-Author
+Results were stable across repeated reads, confirming the complete host-to-FPGA inference path.
 
-Satyarajsinh Gohil
+---
 
+## Repository Structure
+
+```
+CNN_PYNQ-z2/
+├── rtl/
+│   ├── Bram_weight_ctrl.v
+│   ├── cnn_gpio_wrapper.v
+│   ├── cnn_top.v
+│   ├── conv_engine_q88.v
+│   ├── dense_mac_q88.v
+│   ├── mac_q88.v
+│   ├── maxpool_q88.v
+│   └── relu_q88.v
+├── testbench/
+│   ├── cnn_checksum_tb.v
+│   └── cnn_top_tb.v
+├── python/
+│   ├── train.py
+│   ├── model.py
+│   └── data_loader.py
+├── vivado/
+│   └── PYNQ-Z2 hardware design
+└── README.md
+```
+
+---
+
+## Tools and Technologies
+
+| Category             | Technologies                        |
+|----------------------|-------------------------------------|
+| Machine Learning     | Python, TensorFlow, Keras           |
+| Dataset              | EMNIST ByClass                      |
+| Hardware Description | Verilog HDL                         |
+| FPGA                 | Xilinx Zynq-7000 (XC7Z020CLG400-1)  |
+| Board                | PYNQ-Z2                             |
+| Toolchain            | AMD/Xilinx Vivado 2025.1            |
+| Arithmetic           | Signed Q8.8 fixed-point / INT16     |
+| Memory               | Block RAM (BRAM)                    |
+| Host Interface       | AXI GPIO                            |
+| Verification         | Verilog testbench + golden reference|
+
+---
+
+## Highlights
+
+- 62-class handwritten character recognition fully in hardware
+- Hand-written Verilog CNN inference engine (no HLS)
+- Signed Q8.8 fixed-point datapath
+- BRAM-based weight, bias, and activation storage
+- AXI GPIO integration with the Zynq PS
+- Layer-wise RTL verification, 0 mismatches across 7 checkpoints
+- 7.38% LUT / 78.21% BRAM utilization
+- 50 MHz timing closure, WNS +1.545 ns
+- Validated on physical PYNQ-Z2 hardware
+
+---
+
+## Author
+
+**Satyarajsinh Gohil**
 B.Tech. Electronics and VLSI Design
 Dhirubhai Ambani University (DAU)
