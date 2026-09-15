@@ -43,7 +43,7 @@ PYNQ-Z2 Deployment
 FPGA Hardware Inference
 
 The accelerator receives image pixels through the Zynq processing system using AXI GPIO, performs the complete CNN inference in hardware, and returns the predicted class together with hardware status and input checksum information.
-</div>
+
 CNN Architecture
 
 The implemented CNN accepts a 32 × 32 grayscale image and consists of three convolutional stages followed by a fully connected classifier.
@@ -80,7 +80,7 @@ Output: 62 Classes
        |
        v
 Argmax
-</div>
+
 Layer Configuration
 Layer	Configuration	     Output
 Input	Grayscale	         32 × 32 × 1
@@ -126,7 +126,7 @@ The accelerator is implemented using custom Verilog RTL and integrated with the 
              | Biases      |       | Status      |
              | Activations |       | Checksum    |
              +-------------+       +-------------+
-</div>
+
 Hardware Platform
 Parameter	         Specification
 FPGA Board	           PYNQ-Z2
@@ -138,7 +138,7 @@ Arithmetic	           Signed Q8.8 / INT16
 Memory	           Block RAM (BRAM)
 Host Interface	     AXI GPIO
 FPGA Toolchain	     AMD/Xilinx Vivado 2025.1
-</div>
+
 Fixed-Point Implementation
 
 The FPGA datapath uses signed 16-bit Q8.8 fixed-point arithmetic.
@@ -161,7 +161,7 @@ Arithmetic Right Shift by 8
 Q8.8 Result
 
 This enables the CNN to perform inference without floating-point hardware while maintaining the required numerical representation.
-</div>
+
 Memory Optimization
 
 Memory architecture was one of the major implementation challenges.
@@ -172,11 +172,9 @@ This resulted in excessive LUT utilization and prevented successful implementati
 
 The final architecture was redesigned using:
 
-</div>
 Resource	Utilization
 LUT	7.38%
 BRAM	78.21%
-</div>
 RTL Verification
 
 The RTL implementation was verified against golden-reference data generated from the software model.
@@ -193,7 +191,7 @@ Output	    62	           0
 Verification Result
 
 7/7 checkpoints passed with 0 mismatches.
-</div>
+
 Final golden-reference result:
 
 Predicted Class : 8
@@ -212,7 +210,7 @@ Test Accuracy	82.7893%
 The 82.7893% accuracy represents the measured performance of the floating-point software model on the complete EMNIST ByClass test set.
 
 A full-dataset FPGA accuracy measurement was not performed.
-</div>
+
 FPGA Implementation Results
 Resource Utilization
 FPGA Resource	Utilization
@@ -220,7 +218,7 @@ LUT	             7.38%
 Flip-Flop	       2.33%
 BRAM	             78.21%
 DSP	             3.64%
-</div>
+
 Timing Analysis
 Timing Metric	  Result
 Target Frequency	  50 MHz
@@ -232,7 +230,7 @@ THS	              0 ns
 Pulse Width Slack   +8.750 ns
 
 All timing constraints were successfully met at the final 50 MHz operating point.
-</div>
+
 PYNQ-Z2 Hardware Validation
 
 The final bitstream was deployed on the physical PYNQ-Z2 platform.
@@ -246,7 +244,7 @@ CHECKSUM     = 0xCEA
 DIAGNOSTIC   = 0x20ACEA
 
 The result remained stable across repeated hardware reads, confirming correct operation of the complete host-to-FPGA inference path.
-</div>
+
 Tools and Technologies
 Category	                 Technologies
 Machine Learning	      Python, TensorFlow, Keras
@@ -259,7 +257,7 @@ Arithmetic	            Q8.8 Fixed-Point / INT16
 Memory	            BRAM
 Interface	            AXI GPIO
 Verification	      Verilog Testbench, Golden Reference
-</div>
+
 Author
 
 Satyarajsinh Gohil
