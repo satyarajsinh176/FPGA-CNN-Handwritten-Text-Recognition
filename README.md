@@ -2,12 +2,6 @@
 
 **62-class CNN inference engine implemented in Verilog on the PYNQ-Z2 (Xilinx Zynq-7020)**
 
-![Board](https://img.shields.io/badge/Board-PYNQ--Z2-blue)
-![Device](https://img.shields.io/badge/Device-XC7Z020CLG400--1-blue)
-![HDL](https://img.shields.io/badge/HDL-Verilog-orange)
-![Tool](https://img.shields.io/badge/Vivado-2025.1-red)
-![Clock](https://img.shields.io/badge/Clock-50%20MHz-green)
-![Timing](https://img.shields.io/badge/Timing-MET-brightgreen)
 
 ---
 
