@@ -1,101 +1,86 @@
-# FPGA CNN Handwritten Character Recognition
+<div align="center">
 
-<p align="center">
+# FPGA-Based Handwritten Character Recognition Accelerator
 
-**62-Class CNN Accelerator on PYNQ-Z2**
+### Hardware Implementation of a 62-Class Convolutional Neural Network on the PYNQ-Z2 FPGA
 
-A custom Verilog CNN accelerator for handwritten character recognition using  
-**Q8.8 fixed-point arithmetic, BRAM-based memory, and sequential MAC datapaths.**
-
-[![FPGA](https://img.shields.io/badge/FPGA-PYNQ--Z2-blue)](https://www.tulip.com/pynq-z2/)
-[![Device](https://img.shields.io/badge/Device-Zynq--7020-blue)](https://www.amd.com/en/products/adaptive-socs-and-fpgas/soc/zynq-7000.html)
-[![HDL](https://img.shields.io/badge/HDL-Verilog-orange)](https://www.verilog.com/)
-[![Vivado](https://img.shields.io/badge/Vivado-2025.1-red)](https://www.amd.com/en/products/software/adaptive-socs-and-fpgas/vivado.html)
-[![Dataset](https://img.shields.io/badge/Dataset-EMNIST%20ByClass-green)](https://www.nist.gov/itl/products-and-services/emnist-dataset)
-
-</p>
-
----
+</div>
 
 ## Overview
 
-This project implements an end-to-end **FPGA-based handwritten character recognition system** using the **EMNIST ByClass** dataset.
+This project implements an **FPGA-based handwritten character recognition accelerator** on the **PYNQ-Z2** using a custom **Verilog CNN inference architecture**.
 
-A TensorFlow/Keras CNN is trained in software, converted to an FPGA-compatible representation, quantized to **signed Q8.8 / INT16**, and implemented as custom **Verilog RTL** on the **Xilinx Zynq-7020** FPGA.
+The system uses the **EMNIST ByClass** dataset containing **62 character classes (0–9, A–Z, a–z)**. The CNN is trained offline using **TensorFlow/Keras**, converted into an FPGA-compatible inference model, quantized to **signed Q8.8 fixed-point format**, and implemented using custom **Verilog HDL** on the Xilinx **Zynq-7020** FPGA.
 
-EMNIST
-   │
-   ▼
+The complete development flow covers neural network training, model export, fixed-point quantization, RTL implementation, Vivado synthesis and implementation, simulation-based verification, and physical PYNQ-Z2 hardware validation.
+
+---
+
+## System Workflow
+
+```text
+EMNIST ByClass
+      |
+      v
 CNN Training
-   │
-   ▼
+      |
+      v
 Model Export
-   │
-   ▼
+      |
+      v
 Q8.8 Quantization
-   │
-   ▼
+      |
+      v
 Verilog RTL
-   │
-   ▼
-Vivado Implementation
-   │
-   ▼
-PYNQ-Z2
-   │
-   ▼
-Hardware Inference
-Key Results
-Metric	Result
-Character Classes	62
-Software Test Accuracy	82.7893%
-RTL Verification	7/7 Passed
-RTL Mismatches	0
-FPGA Clock	50 MHz
-LUT Utilization	7.38%
-Flip-Flop Utilization	2.33%
-BRAM Utilization	78.21%
-DSP Utilization	3.64%
-Timing WNS	+1.545 ns
-Hardware Prediction	Class 8
-Hardware Checksum	0xCEA
+      |
+      v
+Vivado Synthesis & Implementation
+      |
+      v
+PYNQ-Z2 Deployment
+      |
+      v
+FPGA Hardware Inference
+
+The accelerator receives image pixels through the Zynq processing system using AXI GPIO, performs the complete CNN inference in hardware, and returns the predicted class together with hardware status and input checksum information.
+
 CNN Architecture
 
-The implemented CNN accepts a 32 × 32 grayscale image and performs inference using fixed-point arithmetic.
+The implemented CNN accepts a 32 × 32 grayscale image and consists of three convolutional stages followed by a fully connected classifier.
 
 32 × 32 × 1 Input
-        │
-        ▼
+       |
+       v
 Conv1: 3 × 3, 16 Filters
-        │
-      ReLU
-        │
-   MaxPool 2 × 2
-        │
-        ▼
+       |
+     ReLU
+       |
+MaxPool: 2 × 2
+       |
+       v
 Conv2: 3 × 3, 32 Filters
-        │
-      ReLU
-        │
-   MaxPool 2 × 2
-        │
-        ▼
+       |
+     ReLU
+       |
+MaxPool: 2 × 2
+       |
+       v
 Conv3: 3 × 3, 64 Filters
-        │
-      ReLU
-        │
-        ▼
+       |
+     ReLU
+       |
+       v
 Flatten: 1024
-        │
-        ▼
+       |
+       v
 Dense1: 128 + ReLU
-        │
-        ▼
+       |
+       v
 Output: 62 Classes
-        │
-        ▼
-      Argmax
-Layer Dimensions
+       |
+       v
+Argmax
+Layer Configuration
 Layer	Configuration	Output
 Input	Grayscale	32 × 32 × 1
 Conv1	3 × 3, 16 filters	30 × 30 × 16
@@ -111,50 +96,52 @@ Classes: 0–9, A–Z, a–z
 
 FPGA Architecture
 
-The accelerator is implemented using custom Verilog RTL and controlled through the Zynq processing system.
+The accelerator is implemented using custom Verilog RTL and integrated with the Zynq processing system through AXI GPIO.
 
-                 ┌─────────────────────────┐
-                 │   Zynq Processing       │
-                 │   System / PYNQ         │
-                 └────────────┬────────────┘
-                              │
-                              │ AXI
-                              ▼
-                 ┌─────────────────────────┐
-                 │       AXI GPIO          │
-                 │  Control + Pixel Input  │
-                 └────────────┬────────────┘
-                              │
-                              ▼
-                 ┌─────────────────────────┐
-                 │    CNN Accelerator      │
-                 │       Verilog RTL       │
-                 └────────────┬────────────┘
-                              │
-                    ┌─────────┴─────────┐
-                    │                   │
-                    ▼                   ▼
-          ┌─────────────────┐   ┌─────────────────┐
-          │      BRAM       │   │ Class / Status  │
-          │ Weights/Biases  │   │    Checksum     │
-          │   Activations   │   └─────────────────┘
-          └─────────────────┘
+                 +---------------------------+
+                 |   Zynq Processing System  |
+                 |        PYNQ / Python      |
+                 +-------------+-------------+
+                               |
+                               | AXI GPIO
+                               v
+                 +---------------------------+
+                 |     CNN Accelerator       |
+                 |        Verilog RTL        |
+                 |                           |
+                 | Conv1 → Pool1             |
+                 | Conv2 → Pool2             |
+                 | Conv3 → Dense1            |
+                 | Output → Argmax           |
+                 +-------------+-------------+
+                               |
+                    +----------+----------+
+                    |                     |
+                    v                     v
+             +-------------+       +-------------+
+             |    BRAM     |       |   Output    |
+             |             |       |             |
+             | Weights     |       | Class       |
+             | Biases      |       | Status      |
+             | Activations |       | Checksum    |
+             +-------------+       +-------------+
 Hardware Platform
 Parameter	Specification
-Board	PYNQ-Z2
-FPGA	Xilinx Zynq-7000
-Device	XC7Z020CLG400-1
-Clock	50 MHz
-HDL	Verilog
+FPGA Board	PYNQ-Z2
+FPGA Family	Xilinx Zynq-7000
+FPGA Device	XC7Z020CLG400-1
+Clock Frequency	50 MHz
+HDL	Verilog HDL
 Arithmetic	Signed Q8.8 / INT16
-Memory	BRAM
+Memory	Block RAM (BRAM)
 Host Interface	AXI GPIO
-Development Tool	AMD/Xilinx Vivado 2025.1
+FPGA Toolchain	AMD/Xilinx Vivado 2025.1
 RTL Architecture
 
-The final implementation is organized into modular RTL blocks:
+The hardware accelerator is divided into modular RTL components.
 
 rtl/
+│
 ├── cnn_top.v
 ├── cnn_gpio_wrapper.v
 ├── conv_engine_q88.v
@@ -163,99 +150,116 @@ rtl/
 ├── mac_q88.v
 ├── relu_q88.v
 └── Bram_weight_ctrl.v
-Main Hardware Components
-CNN Controller — sequences the complete inference pipeline.
-Convolution Engine — performs fixed-point convolution operations.
-Max-Pooling Engine — implements 2 × 2 stride-2 pooling.
-MAC Unit — performs signed Q8.8 multiply-accumulate operations.
-Dense MAC Engine — processes the 1024-element feature vector.
-ReLU Unit — performs fixed-point activation.
-BRAM Weight Controller — provides synchronized weight and bias access.
-GPIO Wrapper — connects the CNN accelerator to the Zynq processing system.
+Hardware Modules
+Module	Description
+cnn_top.v	Top-level CNN controller and datapath
+cnn_gpio_wrapper.v	PYNQ / AXI GPIO interface
+conv_engine_q88.v	Fixed-point convolution engine
+maxpool_q88.v	2 × 2 max-pooling engine
+dense_mac_q88.v	Dense-layer MAC engine
+mac_q88.v	Fixed-point multiply-accumulate unit
+relu_q88.v	ReLU activation unit
+Bram_weight_ctrl.v	Weight and bias BRAM controller
 
 The top-level controller uses nine operational states:
 
 LOAD_INPUT
-     ↓
+     |
+     v
 CONV1
-     ↓
+     |
+     v
 POOL1
-     ↓
+     |
+     v
 CONV2
-     ↓
+     |
+     v
 POOL2
-     ↓
+     |
+     v
 CONV3
-     ↓
+     |
+     v
 DENSE1
-     ↓
+     |
+     v
 OUTPUT
-     ↓
+     |
+     v
 DEBUG
 Fixed-Point Implementation
 
-The hardware datapath uses signed 16-bit Q8.8 arithmetic.
+The FPGA datapath uses signed 16-bit Q8.8 fixed-point arithmetic.
 
 16-bit Q8.8
 
-┌────────────────┬────────────────┐
-│  Integer 8-bit │ Fraction 8-bit│
-└────────────────┴────────────────┘
++----------------+----------------+
+| Integer: 8 bit | Fraction: 8 bit|
++----------------+----------------+
 
-For multiplication:
+The multiplication datapath performs fixed-point scaling after multiplication:
 
 Q8.8 × Q8.8
-      │
-      ▼
- Wider Product
-      │
-      ▼
- Arithmetic Right Shift by 8
-      │
-      ▼
- Q8.8 Result
+      |
+      v
+Wider Product
+      |
+      v
+Arithmetic Right Shift by 8
+      |
+      v
+Q8.8 Result
 
-This allows the CNN to operate without floating-point hardware while keeping the datapath suitable for FPGA implementation.
+This enables the CNN to perform inference without floating-point hardware while maintaining the required numerical representation.
 
 Memory Optimization
 
-A major implementation challenge was activation-memory inference.
+Memory architecture was one of the major implementation challenges.
 
-The initial implementation used asynchronous activation-memory reads. Vivado consequently inferred large amounts of distributed LUT-based memory, causing excessive LUT utilization and preventing successful implementation.
+The initial activation-memory implementation used asynchronous array reads, which caused Vivado to infer large distributed LUT-based memories instead of dedicated BRAM.
 
-The memory architecture was redesigned using:
+This resulted in excessive LUT utilization and prevented successful implementation.
+
+The final architecture was redesigned using:
 
 Synchronous BRAM read interfaces
-Dedicated per-array memory access
+Dedicated memory access blocks
 ram_style = "block" attributes
 Synchronized weight and bias access
-Explicit memory initialization using $readmemh
-Final Memory Result
-LUT  Utilization  → 7.38%
-BRAM Utilization  → 78.21%
+Explicit $readmemh memory initialization
+Final Memory Utilization
+Resource	Utilization
+LUT	7.38%
+BRAM	78.21%
 
-The redesigned architecture moved large activation storage from LUT-based memory into dedicated FPGA BRAM resources.
+The redesigned memory architecture moved large activation storage from LUT-based memory into dedicated FPGA BRAM resources.
 
 Software / Hardware Data Ordering
 
-During integration, a critical mismatch was identified between the software tensor layout and the hardware dense-layer memory layout.
+During integration, a mismatch was identified between the software tensor layout and the hardware dense-layer memory layout.
 
-Software
-HWC Ordering
-     │
-     │
-     │ Custom Export / Reorder
-     ▼
-Hardware
-CHW Ordering
+Software Tensor
+      |
+      v
+ HWC Ordering
+      |
+      |
+      | Custom Export / Reorder
+      |
+      v
+ CHW Ordering
+      |
+      v
+Hardware Dense Layer
 
-The convolution results were numerically correct, but the flattened feature vector was presented to the dense layer in a different ordering.
+The convolution outputs were numerically correct, but the flattened feature vector was presented to the dense layer in a different ordering.
 
-A custom export step was introduced to convert the feature vector from HWC to CHW ordering, restoring exact software/hardware alignment.
+A custom export step was introduced to convert the feature vector from HWC to CHW ordering, restoring exact software and hardware alignment.
 
-Verification
+RTL Verification
 
-The RTL was verified against golden-reference data generated from the software model.
+The RTL implementation was verified against golden-reference data generated from the software model.
 
 Layer-Wise Verification
 CNN Stage	Values Checked	Mismatches
@@ -287,16 +291,18 @@ Test Accuracy	82.7893%
 Test Loss	0.427682
 Number of Classes	62
 
-The 82.7893% value is the measured accuracy of the floating-point software model on the complete EMNIST ByClass test set. A full-dataset FPGA accuracy measurement was not performed.
+The 82.7893% accuracy represents the measured performance of the floating-point software model on the complete EMNIST ByClass test set.
+
+A full-dataset FPGA accuracy measurement was not performed.
 
 FPGA Implementation Results
 Resource Utilization
-Resource	Utilization
+FPGA Resource	Utilization
 LUT	7.38%
 Flip-Flop	2.33%
 BRAM	78.21%
 DSP	3.64%
-Timing
+Timing Analysis
 Timing Metric	Result
 Target Frequency	50 MHz
 Clock Period	20 ns
@@ -306,7 +312,7 @@ WHS	+0.064 ns
 THS	0 ns
 Pulse Width Slack	+8.750 ns
 
-All timing constraints were met at the final 50 MHz operating point.
+All timing constraints were successfully met at the final 50 MHz operating point.
 
 A 100 MHz target was investigated during implementation but did not meet timing due to the critical path and associated fan-out. The final 50 MHz configuration provides positive timing margin.
 
@@ -324,53 +330,14 @@ DIAGNOSTIC   = 0x20ACEA
 
 The result remained stable across repeated hardware reads, confirming correct operation of the complete host-to-FPGA inference path.
 
-Repository Structure
-FPGA-CNN-Handwritten-Text-Recognition/
-│
-├── python/
-│   ├── train.py
-│   ├── model.py
-│   ├── data_loader.py
-│   └── evaluate.py
-│
-├── rtl/
-│   ├── cnn_top.v
-│   ├── cnn_gpio_wrapper.v
-│   ├── conv_engine_q88.v
-│   ├── maxpool_q88.v
-│   ├── dense_mac_q88.v
-│   ├── mac_q88.v
-│   ├── relu_q88.v
-│   └── Bram_weight_ctrl.v
-│
-├── testbench/
-│   ├── cnn_top_tb.v
-│   └── cnn_checksum_tb.v
-│
-└── README.md
-Tools & Technologies
-Machine Learning
-Python
-TensorFlow / Keras
-EMNIST ByClass
-Hardware Design
-Verilog HDL
-Fixed-Point Q8.8 Arithmetic
-BRAM
-Sequential MAC Datapaths
-RTL Verification
-FPGA Development
-AMD/Xilinx Vivado
-Xilinx Zynq-7000
-PYNQ-Z2
-AXI GPIO
 Project Highlights
-62-class EMNIST handwritten character recognition
-Custom CNN accelerator implemented in Verilog RTL
+62-class handwritten character recognition
+Custom CNN accelerator implemented using Verilog RTL
 Signed Q8.8 / INT16 fixed-point datapath
-BRAM-based weight and activation storage
+BRAM-based weight, bias, and activation storage
 Sequential MAC architecture
 Nine-state CNN inference controller
+HWC-to-CHW hardware data-order correction
 Layer-wise golden-reference verification
 7/7 verification checkpoints passed
 0 RTL mismatches
@@ -378,13 +345,20 @@ Layer-wise golden-reference verification
 +1.545 ns WNS
 7.38% LUT utilization
 Physical PYNQ-Z2 hardware validation
-Future Work
-Add a hardware cycle counter for exact inference-latency measurement.
-Evaluate the quantized FPGA implementation across the complete EMNIST test set.
-Replace AXI GPIO image transfer with higher-throughput AXI/DMA interfaces.
-Explore additional MAC parallelism for higher inference throughput.
-Optimize BRAM organization and reduce memory footprint.
-Investigate quantization-aware training for improved fixed-point accuracy.
+
+Tools and Technologies
+Category	Technologies
+Machine Learning	Python, TensorFlow, Keras
+Dataset	EMNIST ByClass
+Hardware Description	Verilog HDL
+FPGA	Xilinx Zynq-7000
+Development Board	PYNQ-Z2
+FPGA Toolchain	AMD/Xilinx Vivado 2025.1
+Arithmetic	Q8.8 Fixed-Point / INT16
+Memory	BRAM
+Interface	AXI GPIO
+Verification	Verilog Testbench, Golden Reference
+
 Author
 
 Satyarajsinh Gohil
