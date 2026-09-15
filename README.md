@@ -170,32 +170,6 @@ Final bitstream deployed and read back on the physical PYNQ-Z2:
 
 Results were stable across repeated reads, confirming the complete host-to-FPGA inference path.
 
----
-
-## Repository Structure
-
-```
-CNN_PYNQ-z2/
-├── rtl/
-│   ├── Bram_weight_ctrl.v
-│   ├── cnn_gpio_wrapper.v
-│   ├── cnn_top.v
-│   ├── conv_engine_q88.v
-│   ├── dense_mac_q88.v
-│   ├── mac_q88.v
-│   ├── maxpool_q88.v
-│   └── relu_q88.v
-├── testbench/
-│   ├── cnn_checksum_tb.v
-│   └── cnn_top_tb.v
-├── python/
-│   ├── train.py
-│   ├── model.py
-│   └── data_loader.py
-├── vivado/
-│   └── PYNQ-Z2 hardware design
-└── README.md
-```
 
 ---
 
@@ -234,4 +208,3 @@ CNN_PYNQ-z2/
 
 **Satyarajsinh Gohil**
 B.Tech. Electronics and VLSI Design
-Dhirubhai Ambani University (DAU)
