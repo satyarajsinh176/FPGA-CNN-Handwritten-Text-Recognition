@@ -1,87 +1,109 @@
-# FPGA-Based CNN Accelerator for Handwritten Text Recognition
+# FPGA CNN Handwritten Text Recognition
 
-A hardware-accelerated Convolutional Neural Network (CNN) implemented in Verilog for FPGA-based handwritten text recognition.
+A CNN-based handwritten character recognition accelerator implemented in Verilog and deployed on the PYNQ-Z2 FPGA using Q8.8 fixed-point arithmetic.
 
 ## Overview
 
-This project focuses on implementing CNN inference using custom RTL hardware modules on a Xilinx Zynq-7020 FPGA platform.
+This project implements a 62-class handwritten character recognition system using the EMNIST ByClass dataset. The trained CNN is converted to an FPGA-compatible fixed-point implementation and deployed on a Zynq-7000 XC7Z020 FPGA.
 
-The accelerator uses fixed-point arithmetic and dedicated hardware datapaths to perform neural network computations efficiently.
+**EMNIST → CNN Training → Q8.8 Quantization → Verilog RTL → Vivado → PYNQ-Z2**
 
-## Key Features
+## CNN Architecture
 
-- Custom Verilog RTL implementation of CNN computation
-- Fixed-point Q8.8 arithmetic
-- Sequential MAC-based computation
-- BRAM-based weight storage
-- Convolution and activation processing
-- ReLU activation
-- Max-pooling
-- Fully connected layer
-- Python-based reference model and verification
-- Hardware-oriented layer-by-layer verification
+32 × 32 × 1 Input
+        │
+        ▼
+Conv1: 3×3, 16 Filters
+        │
+      ReLU
+        │
+   MaxPool 2×2
+        │
+        ▼
+Conv2: 3×3, 32 Filters
+        │
+      ReLU
+        │
+   MaxPool 2×2
+        │
+        ▼
+Conv3: 3×3, 64 Filters
+        │
+      ReLU
+        │
+        ▼
+Flatten: 1024
+        │
+        ▼
+Dense1: 128 + ReLU
+        │
+        ▼
+Output: 62 Classes
 
-## Hardware Architecture
+Classes: 0–9, A–Z, a–z
 
-The CNN accelerator is composed of dedicated RTL modules for computation, memory management, activation functions, and pooling.
+Hardware Platform
+Parameter	            Specification
+FPGA Board	         PYNQ-Z2
+FPGA Device	         Zynq-7000 XC7Z020
+Clock	              50 MHz
+HDL	                   Verilog
+Arithmetic	         Signed Q8.8 / INT16
+Memory	              BRAM
+Interface	              AXI GPIO
 
-```text
-Input Image
-     │
-     ▼
-Convolution
-     │
-     ▼
-ReLU
-     │
-     ▼
-Max Pooling
-     │
-     ▼
-Convolution
-     │
-     ▼
-ReLU
-     │
-     ▼
-Max Pooling
-     │
-     ▼
-Convolution
-     │
-     ▼
-ReLU
-     │
-     ▼
-Fully Connected
-     │
-     ▼
-Prediction
+*Results:
 
-RTL Modules
-Module	                  Description
-cnn_top.v	           Top-level CNN accelerator
-conv_engine_q88.v	 Fixed-point convolution engine
-dense_mac_q88.v	 MAC-based dense-layer computation
-mac_q88.v            Fixed-point multiply-accumulate unit
-relu_q88.v	      ReLU activation
-maxpool_q88.v	      2×2 max-pooling
-bram_weight_ctrl.v	 Weight memory/control logic
+Software Model:
 
-Project Status
+Dataset	       EMNIST ByClass
+Test Samples	  116,323
+Test Accuracy	  82.7893%
 
-Currently: RTL simulation and functional verification
+->  The 82.7893% accuracy is the measured accuracy of the floating-point software model on the complete EMNIST ByClass test set. A full-dataset FPGA accuracy measurement was not performed.
 
-FPGA synthesis, implementation, and hardware validation are ongoing.
+*FPGA Implementation
+Metric	                    Result
+RTL Verification	        7/7 Passed
+RTL Mismatches	             0
+Hardware Prediction	Class   8
+Input Checksum	             0xCEA
+Result Valid	             1
+WNS	                       +1.545 ns
+TNS	                       0 ns
+
+*FPGA Resource Utilization:
+
+Resource	    Utilization
+LUT	           7.38%
+Flip-Flop	      2.33%
+BRAM	           78.21%
+DSP	           3.64%
+
+
+*RTL Verification:
+
+The final RTL was verified against golden reference data at every major CNN stage.
+
+Stage	Values Checked	Mismatches
+Conv1	14,400	0
+Pool1	3,600	0
+Conv2	5,408	0
+Pool2	1,152	0
+Conv3	1,024	0
+Dense1	128	0
+Output	62	0
+
+*Final verification: 7/7 checkpoints passed with 0 mismatches.
 
 Tools & Technologies:
-Verilog
-Xilinx Vivado
-PYNQ
 Python
-TensorFlow
-Xilinx Zynq-7020 FPGA
-
-Author
-
-Satyarajsinh Gohil
+TensorFlow / Keras
+EMNIST ByClass
+Verilog HDL
+AMD/Xilinx Vivado
+PYNQ-Z2
+Zynq-7000
+AXI GPIO
+BRAM
+Q8.8 Fixed-Point Arithmetic
