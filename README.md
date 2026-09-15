@@ -200,5 +200,6 @@ Results were stable across repeated reads, confirming the complete host-to-FPGA 
 
 ## Author
 
-**Satyarajsinh Gohil**
--B.Tech. Electronics and VLSI Design
+**Satyarajsinh Gohil** 
+
+B.Tech. Electronics and VLSI Design
